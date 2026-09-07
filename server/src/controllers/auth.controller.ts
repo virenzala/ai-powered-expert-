@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { User } from '../models/User';
 import { ActivityLog } from '../models/ActivityLog';
 import { env } from '../config/env';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { inMemoryStore } from '../services/inMemoryStore';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,7 +23,17 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     const cleanEmail = String(email).trim().toLowerCase();
 
-    const existingUser = await User.findOne({ email: cleanEmail });
+    let existingUser: any = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        existingUser = await User.findOne({ email: cleanEmail });
+      } catch (dbErr) {
+        existingUser = inMemoryStore.findUserByEmail(cleanEmail);
+      }
+    } else {
+      existingUser = inMemoryStore.findUserByEmail(cleanEmail);
+    }
+
     if (existingUser) {
       res.status(400).json({ success: false, message: 'User with this email already exists.', code: 'USER_EXISTS' });
       return;
@@ -30,25 +42,58 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const user = await User.create({
-      name: String(name).trim(),
-      email: cleanEmail,
-      passwordHash,
-      role: role || 'Sales',
-    });
+    let user: any = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        user = await User.create({
+          name: String(name).trim(),
+          email: cleanEmail,
+          passwordHash,
+          role: role || 'Sales',
+        });
+      } catch (createErr) {
+        user = inMemoryStore.createUser({
+          name: String(name).trim(),
+          email: cleanEmail,
+          passwordHash,
+          role: role || 'Sales',
+        });
+      }
+    } else {
+      user = inMemoryStore.createUser({
+        name: String(name).trim(),
+        email: cleanEmail,
+        passwordHash,
+        role: role || 'Sales',
+      });
+    }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
+    inMemoryStore.addUser(user);
+
+    const userId = user._id ? user._id.toString() : user.id;
+    const token = jwt.sign({ id: userId, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
 
     try {
-      await ActivityLog.create({
-        user: user._id,
-        userName: user.name,
-        userRole: user.role,
-        action: 'USER_REGISTERED',
-        entityType: 'User',
-        entityId: user._id.toString(),
-        details: `User account created for ${user.email} with role ${user.role}.`,
-      });
+      if (mongoose.connection.readyState === 1) {
+        await ActivityLog.create({
+          user: userId,
+          userName: user.name,
+          userRole: user.role,
+          action: 'USER_REGISTERED',
+          entityType: 'User',
+          entityId: userId,
+          details: `User account created for ${user.email} with role ${user.role}.`,
+        });
+      } else {
+        inMemoryStore.addActivityLog({
+          userName: user.name,
+          userRole: user.role,
+          action: 'USER_REGISTERED',
+          entityType: 'User',
+          entityId: userId,
+          details: `User account created for ${user.email} with role ${user.role}.`,
+        });
+      }
     } catch (logErr) {
       // Activity log failure should not crash registration
     }
@@ -57,7 +102,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       success: true,
       token,
       user: {
-        id: user._id,
+        id: userId,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -86,9 +131,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const user = await User.findOne({ email: cleanEmail });
+    let user: any = null;
 
-    if (!user || !user.active) {
+    if (mongoose.connection.readyState === 1) {
+      try {
+        user = await User.findOne({ email: cleanEmail });
+      } catch (dbErr) {
+        user = inMemoryStore.findUserByEmail(cleanEmail);
+      }
+    }
+    
+    if (!user) {
+      user = inMemoryStore.findUserByEmail(cleanEmail);
+    }
+
+    if (!user || user.active === false) {
       res.status(401).json({ success: false, message: 'Invalid credentials or inactive account.', code: 'INVALID_CREDENTIALS' });
       return;
     }
@@ -100,20 +157,38 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     user.lastLogin = new Date();
-    await user.save();
+    if (mongoose.connection.readyState === 1 && typeof user.save === 'function') {
+      try {
+        await user.save();
+      } catch (e) {
+        // Ignore save error
+      }
+    }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
+    const userId = user._id ? user._id.toString() : user.id;
+    const token = jwt.sign({ id: userId, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
 
     try {
-      await ActivityLog.create({
-        user: user._id,
-        userName: user.name,
-        userRole: user.role,
-        action: 'USER_LOGIN',
-        entityType: 'User',
-        entityId: user._id.toString(),
-        details: `User ${user.email} logged in successfully.`,
-      });
+      if (mongoose.connection.readyState === 1) {
+        await ActivityLog.create({
+          user: userId,
+          userName: user.name,
+          userRole: user.role,
+          action: 'USER_LOGIN',
+          entityType: 'User',
+          entityId: userId,
+          details: `User ${user.email} logged in successfully.`,
+        });
+      } else {
+        inMemoryStore.addActivityLog({
+          userName: user.name,
+          userRole: user.role,
+          action: 'USER_LOGIN',
+          entityType: 'User',
+          entityId: userId,
+          details: `User ${user.email} logged in successfully.`,
+        });
+      }
     } catch (logErr) {
       // Ignore non-critical log errors
     }
@@ -122,7 +197,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       success: true,
       token,
       user: {
-        id: user._id,
+        id: userId,
         name: user.name,
         email: user.email,
         role: user.role,
