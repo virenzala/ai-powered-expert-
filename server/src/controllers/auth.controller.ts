@@ -7,88 +7,134 @@ import { env } from '../config/env';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { name, email, password, role } = req.body;
+  try {
+    const { name, email, password, role } = req.body || {};
 
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
-  if (existingUser) {
-    res.status(400).json({ success: false, message: 'User with this email already exists.', code: 'USER_EXISTS' });
-    return;
+    if (!name || !email || !password) {
+      res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required fields.',
+        code: 'MISSING_FIELDS',
+      });
+      return;
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: cleanEmail });
+    if (existingUser) {
+      res.status(400).json({ success: false, message: 'User with this email already exists.', code: 'USER_EXISTS' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name: String(name).trim(),
+      email: cleanEmail,
+      passwordHash,
+      role: role || 'Sales',
+    });
+
+    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
+
+    try {
+      await ActivityLog.create({
+        user: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'USER_REGISTERED',
+        entityType: 'User',
+        entityId: user._id.toString(),
+        details: `User account created for ${user.email} with role ${user.role}.`,
+      });
+    } catch (logErr) {
+      // Activity log failure should not crash registration
+    }
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Registration failed due to a server error.',
+      code: 'SERVER_ERROR',
+    });
   }
-
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash(password, salt);
-
-  const user = await User.create({
-    name,
-    email: email.toLowerCase(),
-    passwordHash,
-    role: role || 'Sales',
-  });
-
-  const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
-
-  await ActivityLog.create({
-    user: user._id,
-    userName: user.name,
-    userRole: user.role,
-    action: 'USER_REGISTERED',
-    entityType: 'User',
-    entityId: user._id.toString(),
-    details: `User account created for ${user.email} with role ${user.role}.`,
-  });
-
-  res.status(201).json({
-    success: true,
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body || {};
 
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user || !user.active) {
-    res.status(401).json({ success: false, message: 'Invalid credentials or inactive account.', code: 'INVALID_CREDENTIALS' });
-    return;
+    if (!email || !password) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and password are required.',
+        code: 'MISSING_FIELDS',
+      });
+      return;
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user || !user.active) {
+      res.status(401).json({ success: false, message: 'Invalid credentials or inactive account.', code: 'INVALID_CREDENTIALS' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      res.status(401).json({ success: false, message: 'Invalid credentials.', code: 'INVALID_CREDENTIALS' });
+      return;
+    }
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
+
+    try {
+      await ActivityLog.create({
+        user: user._id,
+        userName: user.name,
+        userRole: user.role,
+        action: 'USER_LOGIN',
+        entityType: 'User',
+        entityId: user._id.toString(),
+        details: `User ${user.email} logged in successfully.`,
+      });
+    } catch (logErr) {
+      // Ignore non-critical log errors
+    }
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Login failed due to a server error.',
+      code: 'SERVER_ERROR',
+    });
   }
-
-  const isMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!isMatch) {
-    res.status(401).json({ success: false, message: 'Invalid credentials.', code: 'INVALID_CREDENTIALS' });
-    return;
-  }
-
-  user.lastLogin = new Date();
-  await user.save();
-
-  const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, { expiresIn: '7d' });
-
-  await ActivityLog.create({
-    user: user._id,
-    userName: user.name,
-    userRole: user.role,
-    action: 'USER_LOGIN',
-    entityType: 'User',
-    entityId: user._id.toString(),
-    details: `User ${user.email} logged in successfully.`,
-  });
-
-  res.json({
-    success: true,
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
-  });
 };
 
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
