@@ -11,3 +11,5 @@ build/
 coverage/
 .pytest_cache/
 
+
+.vercel
