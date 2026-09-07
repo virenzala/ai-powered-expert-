@@ -34,6 +34,14 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Normalize URL prefix for Vercel serverless function invocations
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+  }
+  next();
+});
+
 // Middleware to ensure DB connection per request (essential for serverless Vercel environment)
 app.use(async (req, res, next) => {
   try {
@@ -59,26 +67,69 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    application: 'ExportFlow AI Outreach Server',
+    environment: env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
 
-// API Routes Mounting
+// API Routes Mounting (with and without /api prefix for robust serverless matching)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/dashboard', dashboardRoutes);
+
 app.use('/api/discovery', discoveryRoutes);
+app.use('/discovery', discoveryRoutes);
+
 app.use('/api/buyer-discovery', discoveryRoutes);
+app.use('/buyer-discovery', discoveryRoutes);
+
 app.use('/api/leads', leadRoutes);
+app.use('/leads', leadRoutes);
+
 app.use('/api/companies', companyRoutes);
+app.use('/companies', companyRoutes);
+
 app.use('/api/import', importRoutes);
+app.use('/import', importRoutes);
+
 app.use('/api/templates', templateRoutes);
+app.use('/templates', templateRoutes);
+
 app.use('/api/campaigns', campaignRoutes);
+app.use('/campaigns', campaignRoutes);
+
 app.use('/api/gmail', gmailRoutes);
+app.use('/gmail', gmailRoutes);
+
 app.use('/api/followups', followupRoutes);
+app.use('/followups', followupRoutes);
+
 app.use('/api/suppression', suppressionRoutes);
+app.use('/suppression', suppressionRoutes);
+
 app.use('/api/reports', reportsRoutes);
+app.use('/reports', reportsRoutes);
+
 app.use('/api/activity', auditRoutes);
+app.use('/activity', auditRoutes);
+
 app.use('/api/notifications', notificationRoutes);
+app.use('/notifications', notificationRoutes);
+
 app.use('/api/settings', settingsRoutes);
+app.use('/settings', settingsRoutes);
+
 app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
+
 app.use('/api/industrial', industrialRoutes);
+app.use('/industrial', industrialRoutes);
 
 // Centralized error handler
 app.use(errorHandler);
