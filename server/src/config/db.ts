@@ -21,9 +21,9 @@ export const connectDB = async (): Promise<void> => {
     logger.warn(`Could not connect to ${env.MONGODB_URI} (${error.message}). Launching embedded MongoMemoryServer...`);
     try {
       if (!mongoMemoryServer) {
-        mongoMemoryServer = await MongoMemoryServer.create({
-          downloadDir: process.env.VERCEL ? '/tmp/mongodb' : undefined,
-        });
+        mongoMemoryServer = await MongoMemoryServer.create(
+          process.env.VERCEL ? { binary: { downloadDir: '/tmp/mongodb' } } : undefined
+        );
       }
       const memoryUri = mongoMemoryServer.getUri();
       await mongoose.connect(memoryUri);
