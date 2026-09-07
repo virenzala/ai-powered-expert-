@@ -1,0 +1,95 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import {
+  Search,
+  LayoutDashboard,
+  Users,
+  Building2,
+  FileSpreadsheet,
+  Send,
+  FileText,
+  CalendarCheck,
+  ShieldAlert,
+  BarChart3,
+  History,
+  Settings,
+  Globe,
+  Sparkles,
+  Factory,
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+export const Sidebar: React.FC = () => {
+  const { user } = useAuth();
+
+  const navItems = [
+    { label: 'Find Buyers (API)', path: '/find-buyers', icon: Search },
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Industrial Suite', path: '/industrial', icon: Factory },
+    { label: 'Buyer Leads', path: '/leads', icon: Users },
+    { label: 'Companies', path: '/companies', icon: Building2 },
+    { label: 'CSV Import (Optional)', path: '/import', icon: FileSpreadsheet },
+    { label: 'Outreach Campaigns', path: '/campaigns', icon: Send },
+    { label: 'Email Templates', path: '/templates', icon: FileText },
+    { label: 'Follow-up Tasks', path: '/followups', icon: CalendarCheck },
+    { label: 'Suppression List', path: '/suppression', icon: ShieldAlert },
+    { label: 'Reports & Analytics', path: '/reports', icon: BarChart3 },
+    { label: 'Audit Logs', path: '/audit', icon: History },
+    { label: 'Settings', path: '/settings', icon: Settings },
+  ];
+
+  return (
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen shrink-0 text-slate-300">
+      {/* Brand Header */}
+      <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-800">
+        <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/30">
+          <Globe className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-base font-bold text-white tracking-wide leading-tight">ExportFlow</h1>
+          <p className="text-[10px] text-blue-400 font-medium tracking-wider uppercase flex items-center gap-1">
+            <Sparkles className="w-2.5 h-2.5" /> AI Outreach Engine
+          </p>
+        </div>
+      </div>
+
+      {/* Navigation Menu */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
+                  isActive
+                    ? 'bg-blue-600/10 text-blue-400 border border-blue-500/20 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`
+              }
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* User Footer Profile */}
+      <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md">
+            {user?.name ? user.name.charAt(0) : 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-200 truncate">{user?.name || 'Export User'}</p>
+            <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-slate-800 text-blue-400 border border-slate-700 rounded-md">
+              {user?.role || 'Sales'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+};

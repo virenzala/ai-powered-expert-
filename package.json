@@ -1,0 +1,18 @@
+{
+  "name": "exportflow",
+  "version": "1.0.0",
+  "description": "ExportFlow — AI-Powered Export Outreach Automation System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:server": "npm --prefix server run build",
+    "build:client": "npm --prefix client run build",
+    "seed": "npm --prefix server run seed",
+    "test:server": "npm --prefix server run test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

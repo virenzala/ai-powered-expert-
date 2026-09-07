@@ -1,0 +1,13 @@
+node_modules/
+server/node_modules/
+client/node_modules/
+dist/
+server/dist/
+client/dist/
+build/
+.env
+*.log
+.DS_Store
+coverage/
+.pytest_cache/
+
