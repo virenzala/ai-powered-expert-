@@ -8,6 +8,10 @@ export interface InMemoryUser {
   email: string;
   passwordHash: string;
   role: 'Admin' | 'Manager' | 'Sales';
+  avatarUrl?: string;
+  title?: string;
+  phone?: string;
+  bio?: string;
   active: boolean;
   createdAt: Date;
   lastLogin?: Date;
@@ -239,6 +243,13 @@ class InMemoryStore {
 
   public findUserById(id: string): InMemoryUser | undefined {
     return this.users.find((u) => u.id === id || u._id === id);
+  }
+
+  public updateUser(id: string, updates: Partial<InMemoryUser>): InMemoryUser | undefined {
+    const user = this.findUserById(id);
+    if (!user) return undefined;
+    Object.assign(user, updates);
+    return user;
   }
 
   public createUser(userData: { name: string; email: string; passwordHash: string; role?: string }): InMemoryUser {

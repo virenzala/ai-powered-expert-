@@ -77,9 +77,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleNotifications, unreadNot
             onClick={() => setUserDropdownOpen(!userDropdownOpen)}
             className="flex items-center gap-2 focus:outline-none"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-semibold text-xs flex items-center justify-center shadow-sm">
-              {user?.name ? user.name.charAt(0) : 'U'}
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover shadow-sm border border-blue-500/30" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-semibold text-xs flex items-center justify-center shadow-sm">
+                {user?.name ? user.name.charAt(0) : 'U'}
+              </div>
+            )}
           </button>
 
           {userDropdownOpen && (
@@ -88,6 +92,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleNotifications, unreadNot
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{user?.name}</p>
                 <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
               </div>
+              <a
+                href="/profile"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setUserDropdownOpen(false);
+                  window.location.href = '/profile';
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60 font-medium transition-colors border-b border-slate-100 dark:border-slate-700/60"
+              >
+                <span>My Profile & Avatar</span>
+              </a>
               <button
                 onClick={logout}
                 className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-left font-medium transition-colors"

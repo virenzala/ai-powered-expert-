@@ -6,6 +6,9 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl?: string;
+  title?: string;
+  phone?: string;
+  bio?: string;
 }
 
 export type LeadStatus =

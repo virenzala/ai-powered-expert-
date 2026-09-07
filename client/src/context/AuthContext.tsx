@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (updatedUser: Partial<User>) => void;
   hasRole: (roles: UserRole[]) => boolean;
 }
 
@@ -53,13 +54,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedUser } : null));
+  };
+
   const hasRole = (allowedRoles: UserRole[]): boolean => {
     if (!user) return false;
     return allowedRoles.includes(user.role);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

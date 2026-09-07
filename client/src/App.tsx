@@ -19,6 +19,7 @@ import { SuppressionPage } from './pages/SuppressionPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -73,6 +74,7 @@ export const App: React.FC = () => {
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="audit" element={<AuditLogsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

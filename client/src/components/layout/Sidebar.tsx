@@ -80,17 +80,26 @@ export const Sidebar: React.FC = () => {
 
       {/* User Footer Profile */}
       <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md">
-            {user?.name ? user.name.charAt(0) : 'U'}
-          </div>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) =>
+            `flex items-center gap-3 p-2 rounded-xl transition-all ${
+              isActive ? 'bg-blue-600/10 border border-blue-500/20' : 'hover:bg-slate-800/60'
+            }`
+          }
+        >
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full object-cover shadow-md border border-blue-500/30 shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md shrink-0">
+              {user?.name ? user.name.charAt(0) : 'U'}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-200 truncate">{user?.name || 'Export User'}</p>
-            <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-slate-800 text-blue-400 border border-slate-700 rounded-md">
-              {user?.role || 'Sales'}
-            </span>
+            <p className="text-xs font-semibold text-slate-200 truncate">{user?.name || 'Export User'}</p>
+            <p className="text-[10px] text-slate-400 truncate">{user?.title || user?.role || 'Sales'}</p>
           </div>
-        </div>
+        </NavLink>
       </div>
     </aside>
   );
