@@ -130,6 +130,7 @@ class InMemoryStore {
   public templates: InMemoryTemplate[] = [];
   public campaigns: InMemoryCampaign[] = [];
   public activityLogs: InMemoryActivityLog[] = [];
+  public importJobs: any[] = [];
   private isInitialized = false;
 
   constructor() {
@@ -463,6 +464,30 @@ class InMemoryStore {
     };
     this.activityLogs.unshift(newLog);
     return newLog;
+  }
+
+  // Import Jobs
+  public addImportJob(data: any): any {
+    const id = `job_mem_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const job = {
+      id,
+      _id: id,
+      fileName: data.fileName || 'import.csv',
+      totalRows: data.totalRows || 0,
+      importedCount: data.importedCount || 0,
+      duplicateCount: data.duplicateCount || 0,
+      invalidCount: data.invalidCount || 0,
+      skippedCount: data.skippedCount || 0,
+      status: data.status || 'Completed',
+      jobErrors: data.jobErrors || [],
+      createdAt: new Date(),
+    };
+    this.importJobs.unshift(job);
+    return job;
+  }
+
+  public getImportJobs(): any[] {
+    return this.importJobs;
   }
 }
 

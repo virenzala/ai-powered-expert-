@@ -1,7 +1,9 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { importService } from '../services/import.service';
 import { ImportJob } from '../models/ImportJob';
+import { inMemoryStore } from '../services/inMemoryStore';
 import path from 'path';
 
 export const uploadFileAndPreview = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -68,10 +70,11 @@ export const processImportJob = async (req: AuthRequest, res: Response): Promise
     }
 
     const records = await importService.parseCSV(filePath);
+    const userId = req.user?._id ? req.user._id.toString() : (req.user?.id || 'system_user');
     const importJob = await importService.processImport(
       records,
       mapping,
-      req.user!._id.toString(),
+      userId,
       fileName || path.basename(filePath),
       duplicateStrategy || 'skip'
     );
@@ -88,28 +91,47 @@ export const processImportJob = async (req: AuthRequest, res: Response): Promise
 
 export const getImportJobs = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const jobs = await ImportJob.find().sort({ createdAt: -1 }).limit(20);
+    let jobs: any[] = [];
+    if (mongoose.connection.readyState === 1) {
+      try {
+        jobs = await ImportJob.find().sort({ createdAt: -1 }).limit(20);
+      } catch (e) {
+        jobs = inMemoryStore.getImportJobs();
+      }
+    } else {
+      jobs = inMemoryStore.getImportJobs();
+    }
     res.json({ success: true, data: jobs });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true, data: inMemoryStore.getImportJobs() });
   }
 };
 
 export const downloadErrorReport = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const job = await ImportJob.findById(req.params.id);
+    let job: any = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        job = await ImportJob.findById(req.params.id);
+      } catch (e) {
+        job = inMemoryStore.getImportJobs().find((j) => j._id === req.params.id || j.id === req.params.id);
+      }
+    } else {
+      job = inMemoryStore.getImportJobs().find((j) => j._id === req.params.id || j.id === req.params.id);
+    }
+
     if (!job) {
       res.status(404).json({ success: false, message: 'Import job not found' });
       return;
     }
 
     let csvContent = 'Row,Company,Email,Status,Reason\n';
-    (job.jobErrors || []).forEach((err) => {
+    (job.jobErrors || []).forEach((err: any) => {
       csvContent += `"${err.row}","${(err.company || 'N/A').replace(/"/g, '""')}","${(err.email || 'N/A').replace(/"/g, '""')}","${err.status || 'Invalid'}","${err.reason.replace(/"/g, '""')}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="import_report_${job._id}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="import_report_${job._id || job.id}.csv"`);
     res.send(csvContent);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
