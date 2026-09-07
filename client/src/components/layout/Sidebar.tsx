@@ -42,9 +42,11 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen shrink-0 text-slate-300">
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-800">
-        <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/30">
-          <Globe className="w-5 h-5" />
-        </div>
+        <img
+          src="/logo.jpg"
+          alt="ExportFlow Logo"
+          className="w-9 h-9 rounded-xl object-cover border border-blue-500/30 shadow-lg shadow-blue-600/30"
+        />
         <div>
           <h1 className="text-base font-bold text-white tracking-wide leading-tight">ExportFlow</h1>
           <p className="text-[10px] text-blue-400 font-medium tracking-wider uppercase flex items-center gap-1">

@@ -40,9 +40,11 @@ export const RegisterPage: React.FC = () => {
     <div className="min-h-screen w-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto text-white shadow-lg">
-            <Globe className="w-6 h-6" />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="ExportFlow Logo"
+            className="w-16 h-16 rounded-2xl object-cover border border-blue-500/30 shadow-xl shadow-blue-600/30 mx-auto"
+          />
           <h1 className="text-2xl font-bold text-white">Create Account</h1>
           <p className="text-xs text-slate-400">Join ExportFlow Outreach Engine</p>
         </div>
