@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { seedInline } from './seed/seedRunner';
 import { User } from './models/User';
 import cors from 'cors';
@@ -32,6 +33,22 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware to ensure DB connection per request (essential for serverless Vercel environment)
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+      const userCount = await User.countDocuments();
+      if (userCount === 0) {
+        await seedInline();
+      }
+    }
+  } catch (err) {
+    logger.error('Database middleware connection error:', err);
+  }
+  next();
+});
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
@@ -82,7 +99,7 @@ const startServer = async () => {
   });
 };
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 
